@@ -24,6 +24,7 @@ export function parseReviewInput(json: string): ReviewInputValidationResult {
 	let value: unknown;
 
 	try {
+		// JSON文字列を値へ変換し、構造検証へ渡す
 		value = JSON.parse(json) as unknown;
 	} catch (error) {
 		const detail = error instanceof Error ? ` ${error.message}` : '';
@@ -45,6 +46,7 @@ export function validateReviewInput(value: unknown): ReviewInputValidationResult
 		return { input: null, issues };
 	}
 
+	// トップレベルの項目とコミット識別子を検証する
 	checkProperties(value, '$', [
 		'schemaVersion',
 		'baseCommit',
@@ -72,6 +74,7 @@ export function validateReviewInput(value: unknown): ReviewInputValidationResult
 	const parsedRoutes: ReviewRoute[] = [];
 	const parsedChangeUnits: ChangeUnit[] = [];
 
+	// Review Routeを検証し、利用可能なルートへ変換する
 	if (routes !== null) {
 		if (routes.length === 0) {
 			addIssue(issues, 'emptyArray', 'reviewRoutesは1件以上必要です。', '$.reviewRoutes');
@@ -84,6 +87,7 @@ export function validateReviewInput(value: unknown): ReviewInputValidationResult
 		}
 	}
 
+	// Change Unitを検証し、利用可能な変更単位へ変換する
 	if (changeUnits !== null) {
 		for (let index = 0; index < changeUnits.length; index += 1) {
 			const changeUnit = validateChangeUnit(
@@ -97,9 +101,11 @@ export function validateReviewInput(value: unknown): ReviewInputValidationResult
 		}
 	}
 
+	// 要素間のID重複とRouteからChange Unitへの参照を検証する
 	validateUniqueIds(parsedRoutes, parsedChangeUnits, issues);
 	validateRouteReferences(parsedRoutes, parsedChangeUnits, issues);
 
+	// 問題が残っている場合は不完全な入力を返さず、検証済み入力だけを返す
 	if (issues.length > 0 || baseCommit === null || targetCommit === null || schemaVersion !== 1 || routes === null || changeUnits === null) {
 		return { input: null, issues };
 	}
@@ -125,6 +131,8 @@ function validateReviewRoute(
 		addIssue(issues, 'invalidType', 'Review RouteはJSONオブジェクトである必要があります。', path);
 		return null;
 	}
+
+	// Routeの基本情報と、各ステップの内容を検証する
 	checkProperties(value, path, ['id', 'title', 'steps'], issues);
 	const id = requireNonEmptyString(value, 'id', path, issues);
 	const title = requireNonEmptyString(value, 'title', path, issues);
@@ -163,6 +171,7 @@ function validateRouteStep(
 		return null;
 	}
 
+	// ステップ種別に応じた参照情報と表示文を検証する
 	const kind = requireString(value, 'kind', path, issues);
 	if (kind === null) {
 		return null;
@@ -201,6 +210,8 @@ function validateChangeUnit(
 		addIssue(issues, 'invalidType', 'Change UnitはJSONオブジェクトである必要があります。', path);
 		return null;
 	}
+
+	// 変更単位の説明、対象ファイル、編集範囲、周辺コンテキストを検証する
 	checkProperties(value, path, ['id', 'file', 'summary', 'reason', 'edits', 'contextChain'], issues);
 	const id = requireNonEmptyString(value, 'id', path, issues);
 	const summary = requireNonEmptyString(value, 'summary', path, issues);
@@ -215,6 +226,7 @@ function validateChangeUnit(
 
 	const edits: Edit[] = [];
 	if (editsValue !== null) {
+		// 各編集が基準側・対象側のどちらを持つかを検証する
 		for (let index = 0; index < editsValue.length; index += 1) {
 			const edit = validateEdit(editsValue[index], `${path}.edits[${index}]`, issues);
 			if (edit !== null) {
@@ -225,6 +237,7 @@ function validateChangeUnit(
 
 	const contextChain: ContextReference[] = [];
 	if (contextValue !== null) {
+		// 周辺コードの参照位置と、その関係を検証する
 		for (let index = 0; index < contextValue.length; index += 1) {
 			const context = validateContextReference(
 				contextValue[index],
@@ -255,6 +268,7 @@ function validateFilePair(
 	checkProperties(value, path, ['basePath', 'targetPath'], issues);
 	const basePath = validateNullablePath(value, 'basePath', path, issues);
 	const targetPath = validateNullablePath(value, 'targetPath', path, issues);
+	// 追加・削除のどちらにも対応できるよう、片側のパスを許可する
 	if (basePath === null && targetPath === null && value.basePath !== null && value.targetPath !== null) {
 		return null;
 	}
@@ -334,6 +348,7 @@ function validateSourceLocation(
 	const repositoryPath = requireNonEmptyString(value, 'path', path, issues);
 	const startLine = requirePositiveInteger(value, 'startLine', path, issues);
 	const endLine = requirePositiveInteger(value, 'endLine', path, issues);
+	// リポジトリ内の位置と、前後関係が正しい行範囲かを確認する
 	if (repositoryPath !== null) {
 		validateRepositoryPath(repositoryPath, `${path}.path`, issues);
 	}
@@ -379,6 +394,7 @@ function validateNullablePath(
 }
 
 function validateRepositoryPath(pathValue: string, path: string, issues: ReviewIssue[]): void {
+	// 区切り文字・絶対パス・親ディレクトリ移動を確認し、リポジトリ外への参照を拒否する
 	if (pathValue.includes('\\')) {
 		addIssue(issues, 'invalidPath', 'パス区切りには/だけを使用してください。', path);
 	}
@@ -408,6 +424,7 @@ function validateUniqueIds(
 	changeUnits: readonly ChangeUnit[],
 	issues: ReviewIssue[],
 ): void {
+	// RouteとChange UnitそれぞれのIDを集め、同じ集合内の重複を検出する
 	const routeIds = new Set<string>();
 	for (let index = 0; index < routes.length; index += 1) {
 		const route = routes[index];
@@ -432,6 +449,7 @@ function validateRouteReferences(
 	changeUnits: readonly ChangeUnit[],
 	issues: ReviewIssue[],
 ): void {
+	// RouteのCUステップが、存在するChange Unitだけを参照しているか確認する
 	const changeUnitIds = new Set(changeUnits.map((changeUnit) => changeUnit.id));
 	for (let routeIndex = 0; routeIndex < routes.length; routeIndex += 1) {
 		const route = routes[routeIndex];

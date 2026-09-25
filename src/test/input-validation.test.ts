@@ -206,7 +206,7 @@ suite('レビュー入力の検証', () => {
 		const source: ReviewInputSource = {
 			read: async () => JSON.stringify(validInput({ targetCommit: 'invalid' })),
 		};
-		const result = await startReviewSession(source, 'review.json', 'review-1');
+		const result = await startReviewSession(source, 'review.json', 'review-1', '/workspace/project');
 
 		assert.strictEqual(result.session, null);
 		assert.ok(hasIssue(result, 'invalidCommitId', '$.targetCommit'));
@@ -216,7 +216,7 @@ suite('レビュー入力の検証', () => {
 		const source: ReviewInputSource = {
 			read: async () => JSON.stringify(validInput()),
 		};
-		const result = await startReviewSession(source, 'review.json', 'review-1');
+		const result = await startReviewSession(source, 'review.json', 'review-1', '/workspace/project');
 
 		assert.strictEqual(result.issues.length, 0);
 		assert.strictEqual(result.session?.phase, 'inputValidated');

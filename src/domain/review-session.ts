@@ -8,9 +8,10 @@ import type {
 /** レビュー上の問題が処理継続可能かどうかを表す重大度。 */
 export type ReviewIssueSeverity = 'error' | 'warning';
 
-/** 問題が属する入力・Git・CU・表示対象の分類。 */
+/** 問題が属する入力・ワークスペース・Git・CU・表示対象の分類。 */
 export type ReviewIssueTarget =
 	| 'input'
+	| 'workspace'
 	| 'git'
 	| 'changeUnit'
 	| 'route'
@@ -72,6 +73,8 @@ export type ReviewSelection =
 interface ReviewSessionBase {
 	id: string;
 	input: ReviewInput;
+	/** Git、パス検証、ソース移動で共有するワークスペースのルート。 */
+	workspaceRoot: string;
 	selection: ReviewSelection | null;
 }
 
@@ -106,10 +109,12 @@ export type ReviewSession =
 export function createReviewSession(
 	id: string,
 	input: ReviewInput,
+	workspaceRoot: string,
 ): InputValidatedSession {
 	return {
 		id,
 		input,
+		workspaceRoot,
 		phase: 'inputValidated',
 		git: null,
 		reconciliation: null,

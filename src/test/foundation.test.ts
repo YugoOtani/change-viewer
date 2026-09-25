@@ -140,7 +140,7 @@ suite('Foundation domain contracts', () => {
 	});
 
 	test('progresses a session through the review phases', () => {
-		const inputValidated = createReviewSession('review-1', input);
+		const inputValidated = createReviewSession('review-1', input, '/workspace/project');
 		const gitLoaded = attachGitComparison(inputValidated, comparison);
 		const reconciled = attachReconciliation(gitLoaded, reconciliation);
 
@@ -151,7 +151,7 @@ suite('Foundation domain contracts', () => {
 	});
 
 	test('updates selection without mutating the review session', () => {
-		const session = createReviewSession('review-1', input);
+		const session = createReviewSession('review-1', input, '/workspace/project');
 		const selected = selectReviewItem(session, {
 			kind: 'changeUnit',
 			changeUnitId: changeUnit.id,

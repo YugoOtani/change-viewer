@@ -9,13 +9,15 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "*"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "change-viewer.helloWorld",
-        "title": "Hello World"
+        "command": "change-viewer.openReview",
+        "title": "Open Change Review"
       }
     ]
   },

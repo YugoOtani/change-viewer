@@ -19,9 +19,11 @@ export async function startReviewSession(
 	source: ReviewInputSource,
 	uri: string,
 	sessionId: string,
+	workspaceRoot: string,
 ): Promise<ReviewStartResult> {
 	let json: string;
 	try {
+		// 入力元からレビュー入力のJSONを読み込む
 		json = await source.read(uri);
 	} catch (error) {
 		return {
@@ -36,12 +38,15 @@ export async function startReviewSession(
 		};
 	}
 
+	// JSONの構文・構造・参照を検証し、問題があれば開始を中止する
 	const result = parseReviewInput(json);
 	if (result.input === null) {
 		return { session: null, issues: result.issues };
 	}
+
+	// 検証済み入力と対象ワークスペースから初期セッションを作る
 	return {
-		session: createReviewSession(sessionId, result.input),
+		session: createReviewSession(sessionId, result.input, workspaceRoot),
 		issues: result.issues,
 	};
 }

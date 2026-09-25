@@ -16,9 +16,9 @@ export interface ReviewInputSource {
 
 /** Git のコミット解決、比較、blob 読み取りを担う境界。 */
 export interface GitRepository {
-	resolveCommit(commitId: string): Promise<GitCommit>;
-	compareCommits(base: GitCommit, target: GitCommit): Promise<GitComparison>;
-	readBlob(commit: GitCommit, path: RepositoryPath): Promise<GitBlob | null>;
+	resolveCommit(workspaceRoot: string, commitId: string): Promise<GitCommit>;
+	compareCommits(workspaceRoot: string, base: GitCommit, target: GitCommit): Promise<GitComparison>;
+	readBlob(workspaceRoot: string, commit: GitCommit, path: RepositoryPath): Promise<GitBlob | null>;
 }
 
 /** Review Route を表示する境界。入力検証後の全セッションを扱う。 */
@@ -33,7 +33,7 @@ export interface ReviewDiffView {
 
 /** 指定コミットのソース位置を通常のエディタへ移動する境界。 */
 export interface SourceNavigator {
-	open(location: SourceLocation): Promise<void>;
+	open(workspaceRoot: string, location: SourceLocation): Promise<void>;
 }
 
 /** View 間でレビュー対象の選択状態を共有する境界。 */
