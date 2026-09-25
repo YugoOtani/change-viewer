@@ -1,0 +1,339 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Change Viewer input version 1",
+  "description": "Structural contract for externally generated review data. Cross-reference and Git content checks are specified in spec.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "baseCommit",
+    "targetCommit",
+    "reviewRoutes",
+    "changeUnits"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "baseCommit": {
+      "$ref": "#/$defs/commitId"
+    },
+    "targetCommit": {
+      "$ref": "#/$defs/commitId"
+    },
+    "reviewRoutes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/reviewRoute"
+      }
+    },
+    "changeUnits": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/changeUnit"
+      }
+    }
+  },
+  "$defs": {
+    "commitId": {
+      "type": "string",
+      "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+    },
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "repoPath": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourceLocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "revision",
+        "path",
+        "startLine",
+        "endLine"
+      ],
+      "properties": {
+        "revision": {
+          "enum": [
+            "base",
+            "target"
+          ]
+        },
+        "path": {
+          "$ref": "#/$defs/repoPath"
+        },
+        "startLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endLine": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "routeStep": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "cuId",
+            "text"
+          ],
+          "properties": {
+            "kind": {
+              "const": "cu"
+            },
+            "cuId": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "text": {
+              "$ref": "#/$defs/nonEmptyString"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "location",
+            "text"
+          ],
+          "properties": {
+            "kind": {
+              "const": "code"
+            },
+            "location": {
+              "$ref": "#/$defs/sourceLocation"
+            },
+            "text": {
+              "$ref": "#/$defs/nonEmptyString"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "text"
+          ],
+          "properties": {
+            "kind": {
+              "const": "explanation"
+            },
+            "text": {
+              "$ref": "#/$defs/nonEmptyString"
+            }
+          }
+        }
+      ]
+    },
+    "filePair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "basePath",
+        "targetPath"
+      ],
+      "properties": {
+        "basePath": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/repoPath"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "targetPath": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/repoPath"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "anyOf": [
+        {
+          "properties": {
+            "basePath": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "properties": {
+            "targetPath": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "editSide": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "startLine",
+        "lineCount"
+      ],
+      "properties": {
+        "startLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "lineCount": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "edit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base",
+        "target"
+      ],
+      "properties": {
+        "base": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/editSide"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/editSide"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "anyOf": [
+        {
+          "properties": {
+            "base": {
+              "$ref": "#/$defs/editSide"
+            }
+          }
+        },
+        {
+          "properties": {
+            "target": {
+              "$ref": "#/$defs/editSide"
+            }
+          }
+        }
+      ]
+    },
+    "contextReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relation",
+        "description",
+        "location"
+      ],
+      "properties": {
+        "relation": {
+          "enum": [
+            "controlFlow",
+            "stateFlow",
+            "sideEffect",
+            "interface"
+          ]
+        },
+        "description": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "location": {
+          "$ref": "#/$defs/sourceLocation"
+        }
+      }
+    },
+    "changeUnit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "file",
+        "summary",
+        "reason",
+        "edits",
+        "contextChain"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "file": {
+          "$ref": "#/$defs/filePair"
+        },
+        "summary": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "reason": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "edits": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/edit"
+          }
+        },
+        "contextChain": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/contextReference"
+          }
+        }
+      }
+    },
+    "reviewRoute": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "steps"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "title": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/routeStep"
+          }
+        }
+      }
+    }
+  }
+}
