@@ -1,5 +1,5 @@
 ---
-name: review-change-instant
+name: review-change-md
 description: コミット間の実装変更を、人間が短時間で把握できる Markdown に整理する。変更の目的、処理の流れ、意味のある変更単位、その外側の semantic context、重要な設計判断を簡潔に説明する。
 ---
 
