@@ -125,6 +125,8 @@ description: コミット間の実装変更を、人間が短時間で把握で�
 # 出力
 
 `.ai/templates/review.md`のフォーマットに従って出力する
+出力先は各タスクの`.ai/features/<feature>/tasks/<task>/review.md`とする。
+すでに存在する場合はファイル名の末尾に連番を付けて保存する。
 
 # 説明の粒度
 
