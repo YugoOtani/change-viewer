@@ -1,6 +1,6 @@
 ---
 name: implement-test
-description: 実装タスクの一部として、承認済みのテスト計画と既存のテスト構成に沿ったテストコードを実装する。
+description: 実装タスクの一部として、テスト計画と既存のテスト構成に沿ったテストコードを実装する。
 ---
 
 - `task.md` と `test-plan.md` を読む。
