@@ -1,6 +1,6 @@
 ---
 name: review-change
-description: 実際のコミット間の変更を意味のある変更単位と閲覧経路に整理し、docs/input.schema.json に適合する Change Viewer 入力を作る。検証結果・リスク・人間レビューの論点も別途記録する。
+description: 実際のコミット間の変更を意味のある変更単位と閲覧経路に整理し、src/input.schema.json に適合する Change Viewer 入力を作る。検証結果・リスク・人間レビューの論点も別途記録する。
 ---
 
 # 目的
@@ -18,7 +18,7 @@ description: 実際のコミット間の変更を意味のある変更単位と�
 レビュー開始前に、対象に応じて以下を確認する。
 
 - `AGENTS.md` と `.ai/policies/` の関連規則
-- `docs/input.schema.json`（入力の構造・型の正本）
+- `src/input.schema.json`（入力の構造・型の正本）
 - `docs/spec.md`（入力の意味・検証規則の正本）
 - `docs/architecture.md`、`docs/coding-guidelines.md`、`docs/test-guidelines.md`
 - 機能仕様、タスク、テスト計画、実装理由
@@ -110,11 +110,11 @@ Chain は、**その context を見れば変更がアプリケーション全体
 
 ## 7. 出力を検証する
 
-`review.json` の全フィールドと型を `docs/input.schema.json` で検証し、スキーマ外の項目を残さない。加えて `docs/spec.md` の意味上の制約を確認する。特に、コミット ID の解決、ID の一意性、CU ステップの参照先、パス、`SourceLocation` の範囲、`edits` と実差分の一致を確認する。構造検証だけで意味上の整合性まで確認済みと報告しない。
+`review.json` の全フィールドと型を `src/input.schema.json` で検証し、スキーマ外の項目を残さない。加えて `docs/spec.md` の意味上の制約を確認する。特に、コミット ID の解決、ID の一意性、CU ステップの参照先、パス、`SourceLocation` の範囲、`edits` と実差分の一致を確認する。構造検証だけで意味上の整合性まで確認済みと報告しない。
 
 # 出力
 
-主要成果物は `.ai/features/<feature>/tasks/<task>/review.json` とする。JSON は `docs/input.schema.json` に完全に従い、最上位に次の五項目だけを置く。
+主要成果物は `.ai/features/<feature>/tasks/<task>/review.json` とする。JSON は `src/input.schema.json` に完全に従い、最上位に次の五項目だけを置く。
 
 - `schemaVersion`: `1`
 - `baseCommit`: 完全長の基準コミット ID
@@ -135,4 +135,4 @@ Chain は、**その context を見れば変更がアプリケーション全体
 - Review Route が閲覧順と処理のつながりを示している。
 - 必要な文脈参照が実在するコード位置を指している。
 - 検証結果、CU ごとのリスク・評価、人間レビューの論点、全体の推奨アクションが補助レポートにある。
-- `review.json` が `docs/input.schema.json` と `docs/spec.md` の制約に適合している。
+- `review.json` が `src/input.schema.json` と `docs/spec.md` の制約に適合している。
