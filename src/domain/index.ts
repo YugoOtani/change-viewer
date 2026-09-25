@@ -16,6 +16,15 @@ export type {
 	SourceLocation,
 } from './review-input';
 
+export {
+	parseReviewInput,
+	validateReviewInput,
+} from './input-validation';
+
+export type {
+	ReviewInputValidationResult,
+} from './input-validation';
+
 export type {
 	DiffLineKind,
 	DiffLineReference,
