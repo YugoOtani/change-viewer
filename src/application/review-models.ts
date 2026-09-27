@@ -23,9 +23,11 @@ export interface RouteViewModel {
 export interface TreeItemViewModel {
 	id: string;
 	label: string;
-	kind: 'file' | 'changeUnit' | 'unassignedGroup' | 'unassignedDiff';
+	kind: 'file' | 'changeUnit' | 'context' | 'unassignedGroup' | 'unassignedDiff';
 	children: readonly TreeItemViewModel[];
 	warning: boolean;
+	changeUnitId?: string;
+	contextIndex?: number;
 }
 
 export interface DiffLineViewModel {
@@ -44,7 +46,7 @@ export interface DiffBlockViewModel {
 	warning: readonly string[];
 	isLarge: boolean;
 	initiallyCollapsed: boolean;
-	contexts: readonly { index: number; description: string }[];
+	contexts: readonly { index: number; relation: string; description: string }[];
 }
 
 export interface DiffFileViewModel {
@@ -110,7 +112,7 @@ export function createTreeViewModel(session: ReconciledSession): TreeItemViewMod
 				label: unit.changeUnit.summary,
 				kind: 'changeUnit' as const,
 				warning: unit.issues.length > 0,
-				children: [],
+				children: unit.changeUnit.contextChain.length === 0 ? [] : [createContextItem(session, unit.changeUnit, 0)],
 			})),
 	}));
 	// CU に割り当てられなかった差分は独立した項目にまとめる
@@ -183,7 +185,7 @@ function createBlocks(session: ReconciledSession, file: GitFileDiff, selectedDif
 			warning: unit.issues.map((issue) => issue.message),
 			isLarge,
 			initiallyCollapsed: isLarge,
-			contexts: unit.changeUnit.contextChain.map((context, index) => ({ index, description: context.description })),
+			contexts: unit.changeUnit.contextChain.map((context, index) => ({ index, relation: context.relation, description: context.description })),
 		};
 	});
 	// 選択状態に応じて未割当差分を抽出し、CU の表示単位に続ける
@@ -210,4 +212,26 @@ function sameFile(left: { basePath: string | null; targetPath: string | null }, 
 
 function referenceKey(reference: DiffLineReference): string {
 	return `${reference.fileDiffId}:${reference.revision}:${reference.line}`;
+}
+
+function contextName(filePath: string, startLine: number): string {
+	return `${filePath}:${startLine}`;
+}
+
+function contextRelationName(relation: string): string {
+	return ({ controlFlow: '制御フロー', stateFlow: '状態の流れ', sideEffect: '副作用', interface: 'インターフェース' })[relation] ?? relation;
+}
+
+function createContextItem(session: ReconciledSession, changeUnit: ReconciledSession['input']['changeUnits'][number], index: number): TreeItemViewModel {
+	const context = changeUnit.contextChain[index];
+	if (context === undefined) {throw new Error(`Contextがありません: ${changeUnit.id}[${index}]`);}
+	return {
+		id: `context:${changeUnit.id}:${index}`,
+		label: `${contextName(context.location.path, context.location.startLine)} · ${contextRelationName(context.relation)} · ${context.description}`,
+		kind: 'context',
+		warning: session.issues.some((issue) => issue.target === 'source' && issue.path === `$.changeUnits[${session.input.changeUnits.indexOf(changeUnit)}].contextChain[${index}]`),
+		changeUnitId: changeUnit.id,
+		contextIndex: index,
+		children: index + 1 < changeUnit.contextChain.length ? [createContextItem(session, changeUnit, index + 1)] : [],
+	};
 }

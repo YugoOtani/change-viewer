@@ -1,5 +1,3 @@
-import * as path from 'node:path';
-
 import * as vscode from 'vscode';
 
 import type { GitRepository, SourceNavigator } from '../application/ports';
@@ -9,25 +7,33 @@ import type { ReconciledSession, SourceLocation } from '../domain';
 export class GitSourceNavigator implements SourceNavigator, vscode.Disposable {
 	private commits: ReconciledSession['git'] | null = null;
 	private readonly decorations = new Set<vscode.TextEditorDecorationType>();
+	private readonly contents = new Map<string, string>();
+	private readonly contentEmitter = new vscode.EventEmitter<vscode.Uri>();
+	private readonly provider: vscode.Disposable;
 
-	constructor(private readonly repository: GitRepository) {}
+	constructor(private readonly repository: GitRepository) {
+		this.provider = vscode.workspace.registerTextDocumentContentProvider('change-viewer', {
+			onDidChange: this.contentEmitter.event,
+			provideTextDocumentContent: (uri) => this.contents.get(uri.toString()) ?? '',
+		});
+	}
 
 	setSession(session: ReconciledSession): void {
 		this.commits = session.git;
 	}
 
 	async open(workspaceRoot: string, location: SourceLocation): Promise<void> {
-		await this.openAt(workspaceRoot, location, vscode.ViewColumn.Two);
+		await this.openAt(workspaceRoot, location, vscode.ViewColumn.Active);
 	}
 
-	/** CU の親コードを選択中の CU を変えずに横のエディタグループへ表示する。 */
+	/** CU の親コードを CU と同じエディタグループへ表示する。 */
 	async openContext(session: ReconciledSession, changeUnitId: string, contextIndex: number): Promise<void> {
 		const changeUnit = session.input.changeUnits.find((item) => item.id === changeUnitId);
 		const context = changeUnit?.contextChain[contextIndex];
 		if (context === undefined) {
 			throw new Error(`親コードの参照が存在しません: ${changeUnitId}[${contextIndex}]`);
 		}
-		await this.openAt(session.workspaceRoot, context.location, vscode.ViewColumn.Two, context.description);
+		await this.openAt(session.workspaceRoot, context.location, vscode.ViewColumn.Active, `${context.relation}\n${context.description}`, 'editor.wordHighlightBackground');
 	}
 
 	private async openAt(
@@ -35,6 +41,7 @@ export class GitSourceNavigator implements SourceNavigator, vscode.Disposable {
 		location: SourceLocation,
 		viewColumn: vscode.ViewColumn,
 		description?: string,
+		highlightColor = 'editor.findMatchHighlightBackground',
 	): Promise<void> {
 		if (this.commits === null) {
 			throw new Error('レビューセッションが設定されていません。');
@@ -51,10 +58,10 @@ export class GitSourceNavigator implements SourceNavigator, vscode.Disposable {
 			throw new Error(`ソースの行範囲が存在しません: ${location.path}:${location.startLine}-${location.endLine}`);
 		}
 		// コミット時点の内容をエディタへ開き、参照範囲を選択して強調する
-		const document = await vscode.workspace.openTextDocument({
-			language: languageFromPath(location.path),
-			content,
-		});
+		const uri = vscode.Uri.from({ scheme: 'change-viewer', authority: location.revision, path: `/${location.path}` });
+		this.contents.set(uri.toString(), content);
+		this.contentEmitter.fire(uri);
+		const document = await vscode.workspace.openTextDocument(uri);
 		const editor = await vscode.window.showTextDocument(document, {
 			preview: false,
 			viewColumn,
@@ -65,7 +72,7 @@ export class GitSourceNavigator implements SourceNavigator, vscode.Disposable {
 		this.clearDecorations();
 		const decoration = vscode.window.createTextEditorDecorationType({
 			isWholeLine: true,
-			backgroundColor: new vscode.ThemeColor('editor.findMatchHighlightBackground'),
+			backgroundColor: new vscode.ThemeColor(highlightColor),
 		});
 		this.decorations.add(decoration);
 		editor.setDecorations(decoration, [{ range, hoverMessage: description }]);
@@ -86,11 +93,24 @@ export class GitSourceNavigator implements SourceNavigator, vscode.Disposable {
 				: reconciled.changeUnit.file.targetPath ?? reconciled.changeUnit.file.basePath!,
 			startLine: location.line,
 			endLine: location.line,
-		}, vscode.ViewColumn.One, `${reconciled.changeUnit.summary}\n\n${reconciled.changeUnit.reason}`);
+		}, vscode.ViewColumn.Active, `${reconciled.changeUnit.summary}\n\n${reconciled.changeUnit.reason}`);
+		const editor = vscode.window.activeTextEditor;
+		if (editor !== undefined) {
+			const ranges = locations.map((line) => new vscode.Range(line.line - 1, 0, line.line - 1, editor.document.lineAt(line.line - 1).range.end.character));
+			const decoration = vscode.window.createTextEditorDecorationType({
+				isWholeLine: true,
+				backgroundColor: new vscode.ThemeColor('editor.findMatchHighlightBackground'),
+			});
+			this.decorations.add(decoration);
+			editor.setDecorations(decoration, ranges);
+		}
 	}
 
 	dispose(): void {
 		this.clearDecorations();
+		this.provider.dispose();
+		this.contentEmitter.dispose();
+		this.contents.clear();
 	}
 
 	private clearDecorations(): void {
@@ -99,8 +119,4 @@ export class GitSourceNavigator implements SourceNavigator, vscode.Disposable {
 		}
 		this.decorations.clear();
 	}
-}
-
-function languageFromPath(filePath: string): string {
-	return path.extname(filePath).replace(/^\./, '') || 'plaintext';
 }

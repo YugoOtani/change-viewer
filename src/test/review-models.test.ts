@@ -36,7 +36,10 @@ function createInput(): ReviewInput {
 				summary: '変更1',
 				reason: '理由1',
 				edits: [{ base: { startLine: 1, lineCount: 1 }, target: { startLine: 1, lineCount: 1 } }],
-				contextChain: [],
+				contextChain: [
+					{ relation: 'controlFlow', description: '処理から呼び出される', location: { revision: 'target', path: 'src/example.ts', startLine: 1, endLine: 2 } },
+					{ relation: 'stateFlow', description: '状態を保持する', location: { revision: 'target', path: 'src/example.ts', startLine: 1, endLine: 3 } },
+				],
 			},
 			{
 				id: 'cu-unassigned',
@@ -96,7 +99,10 @@ suite('レビュー表示モデル', () => {
 		const diff = createDiffViewModel(session);
 
 		assert.strictEqual(tree[0].children[0].id, 'cu:cu-1');
+		assert.strictEqual(tree[0].children[0].children[0].kind, 'context');
+		assert.strictEqual(tree[0].children[0].children[0].children[0].contextIndex, 1);
 		assert.strictEqual(diff.files[0].blocks[0].lines[0].text, '実差分');
+		assert.deepStrictEqual(diff.files[0].blocks[0].contexts.map((context) => context.relation), ['controlFlow', 'stateFlow']);
 	});
 
 	test('1,000変更行のCUを初期折りたたみにする', () => {

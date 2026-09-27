@@ -31,6 +31,10 @@
     "views": {
       "explorer": [
         {
+          "id": "changeViewer.routes",
+          "name": "Review Route"
+        },
+        {
           "id": "changeViewer.files",
           "name": "Change Viewer"
         }

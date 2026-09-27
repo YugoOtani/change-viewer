@@ -186,6 +186,8 @@ export class ReviewTreeDataProvider implements vscode.TreeDataProvider<TreeNode>
 		item.description = element.warning ? '警告' : undefined;
 		item.command = element.kind === 'changeUnit'
 			? { command: 'change-viewer.selectChangeUnit', title: '変更単位を選択', arguments: [element.id.slice(3)] }
+			: element.kind === 'context'
+				? { command: 'change-viewer.openContext', title: 'Contextを開く', arguments: [element.changeUnitId, element.contextIndex] }
 			: element.kind === 'unassignedDiff'
 				? { command: 'change-viewer.selectUnassignedDiff', title: '未割当差分を選択', arguments: [element.id.slice(5)] }
 				: undefined;
@@ -202,12 +204,91 @@ export class ReviewTreeDataProvider implements vscode.TreeDataProvider<TreeNode>
 	}
 }
 
+/** Review Route と各 Step を Explorer に表示する。 */
+export class ReviewRouteTreeDataProvider implements vscode.TreeDataProvider<RouteTreeNode>, vscode.Disposable {
+	private session: ReconciledSession | undefined;
+	private readonly changeEmitter = new vscode.EventEmitter<RouteTreeNode | undefined>();
+	private readonly selectionSubscription: () => void;
+	readonly onDidChangeTreeData = this.changeEmitter.event;
+
+	constructor(private readonly selectionStore: ReviewSelectionStore) {
+		this.selectionSubscription = selectionStore.subscribe(() => this.changeEmitter.fire(undefined));
+	}
+
+	setSession(session: ReconciledSession): void {
+		this.session = session;
+		this.changeEmitter.fire(undefined);
+	}
+
+	getTreeItem(element: RouteTreeNode): vscode.TreeItem {
+		const item = new vscode.TreeItem(element.label, element.children.length > 0
+			? vscode.TreeItemCollapsibleState.Expanded
+			: vscode.TreeItemCollapsibleState.None);
+		item.id = element.id;
+		if (element.kind === 'cu') {
+			item.command = { command: 'change-viewer.selectChangeUnit', title: '変更単位を選択', arguments: [element.cuId] };
+		} else if (element.kind === 'code') {
+			item.command = { command: 'change-viewer.openRouteCode', title: 'コードを開く', arguments: [element.routeId, element.stepIndex] };
+		} else if (element.kind === 'explanation') {
+			item.command = { command: 'change-viewer.selectRouteStep', title: '説明を選択', arguments: [element.routeId, element.stepIndex] };
+		}
+		return item;
+	}
+
+	getChildren(element?: RouteTreeNode): RouteTreeNode[] {
+		if (this.session === undefined) {return [];}
+		if (element !== undefined) {return [...element.children];}
+		const referenced = new Set(this.session.input.reviewRoutes.flatMap((route) => route.steps
+			.filter((step): step is Extract<typeof step, { kind: 'cu' }> => step.kind === 'cu')
+			.map((step) => step.cuId)));
+		const routes: RouteTreeNode[] = this.session.input.reviewRoutes.map((route) => ({
+			id: `route:${route.id}`,
+			kind: 'route' as const,
+			label: route.title,
+			children: route.steps.map((step, stepIndex) => {
+				const selection = this.selectionStore.get();
+				const isCurrentStep = selection?.kind === 'routeStep' && selection.routeId === route.id && selection.stepIndex === stepIndex;
+				if (step.kind === 'cu') {
+					const selected = (selection?.kind === 'changeUnit' && selection.changeUnitId === step.cuId) || isCurrentStep;
+					return { id: `step:${route.id}:${stepIndex}`, kind: 'cu' as const, label: `${selected ? '▶ ' : ''}${step.text}`, routeId: route.id, stepIndex, cuId: step.cuId, children: [] };
+				}
+				return step.kind === 'code'
+					? { id: `step:${route.id}:${stepIndex}`, kind: 'code' as const, label: `${isCurrentStep ? '▶ ' : ''}${step.text}`, routeId: route.id, stepIndex, location: step.location, children: [] }
+					: { id: `step:${route.id}:${stepIndex}`, kind: 'explanation' as const, label: `${isCurrentStep ? '▶ ' : ''}${step.text}`, routeId: route.id, stepIndex, children: [] };
+			}),
+		}));
+		const unassigned = this.session.input.changeUnits.filter((unit) => !referenced.has(unit.id));
+		if (unassigned.length > 0) {
+			routes.push({ id: 'route:unassigned', kind: 'route', label: '経路未割当 CU', children: unassigned.map((unit) => ({
+				id: `step:unassigned:${unit.id}`, kind: 'cu', label: unit.summary, cuId: unit.id, children: [],
+			})) });
+		}
+		return routes;
+	}
+
+	dispose(): void { this.selectionSubscription(); this.changeEmitter.dispose(); }
+}
+
+interface RouteTreeNode {
+	id: string;
+	kind: 'route' | 'cu' | 'code' | 'explanation';
+	label: string;
+	children: readonly RouteTreeNode[];
+	routeId?: string;
+	stepIndex?: number;
+	cuId?: string;
+	location?: import('../domain').SourceLocation;
+	description?: string;
+}
+
 interface TreeNode {
 	id: string;
 	label: string;
-	kind: 'file' | 'changeUnit' | 'unassignedGroup' | 'unassignedDiff';
+	kind: 'file' | 'changeUnit' | 'context' | 'unassignedGroup' | 'unassignedDiff';
 	warning: boolean;
 	children: readonly TreeNode[];
+	changeUnitId?: string;
+	contextIndex?: number;
 }
 
 function toTreeNode(model: ReturnType<typeof createTreeViewModel>[number]): TreeNode {

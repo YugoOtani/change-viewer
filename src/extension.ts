@@ -26,7 +26,7 @@ import {
 } from './infrastructure/source-navigator';
 import {
 	DiffWebview,
-	ReviewRouteWebview,
+	ReviewRouteTreeDataProvider,
 	ReviewTreeDataProvider,
 } from './infrastructure/review-views';
 
@@ -156,7 +156,7 @@ export function activate(context: vscode.ExtensionContext): void {
 	const repository = new GitCliRepository();
 	const selectionStore = new InMemoryReviewSelectionStore();
 	const sourceNavigator = new GitSourceNavigator(repository);
-	const routeView = new ReviewRouteWebview(selectionStore, sourceNavigator);
+	const routeProvider = new ReviewRouteTreeDataProvider(selectionStore);
 	const diffView = new DiffWebview(selectionStore, sourceNavigator);
 	const treeProvider = new ReviewTreeDataProvider(selectionStore);
 	let activeSession: import('./domain').ReconciledSession | undefined;
@@ -171,7 +171,6 @@ export function activate(context: vscode.ExtensionContext): void {
 		// 再実行時に前のレビュー画面と選択対象を残さない
 		activeSession = undefined;
 		selectionStore.set(null);
-		routeView.clear();
 		diffView.clear();
 		treeProvider.clear();
 		// 入力元とワークスペースを解決した後、GitとCUを順に読み込む
@@ -210,9 +209,8 @@ export function activate(context: vscode.ExtensionContext): void {
 		activeSession = loaded.session;
 		selectionStore.set(null);
 		sourceNavigator.setSession(loaded.session);
+		routeProvider.setSession(loaded.session);
 		treeProvider.setSession(loaded.session);
-		await routeView.show(loaded.session);
-		await diffView.show(loaded.session);
 		const warnings = loaded.issues.filter((issue) => issue.severity === 'warning');
 		if (warnings.length > 0) {
 			void vscode.window.showWarningMessage(warnings.map((issue) => issue.message).join('\n'));
@@ -224,14 +222,35 @@ export function activate(context: vscode.ExtensionContext): void {
 	});
 	const selectChangeUnit = vscode.commands.registerCommand('change-viewer.selectChangeUnit', async (changeUnitId: string) => {
 		if (activeSession?.input.changeUnits.some((unit) => unit.id === changeUnitId) !== true) {return;}
+		diffView.clear();
 		selectionStore.set({ kind: 'changeUnit', changeUnitId });
 	});
-	const selectUnassigned = vscode.commands.registerCommand('change-viewer.selectUnassignedDiff', (diffId: string) => {
+	const selectUnassigned = vscode.commands.registerCommand('change-viewer.selectUnassignedDiff', async (diffId: string) => {
 		if (activeSession?.reconciliation.unassignedDiffs.some((diff) => diff.id === diffId) !== true) {return;}
 		selectionStore.set({ kind: 'unassignedDiff', diffId });
+		await diffView.show(activeSession);
 	});
+	const openRouteCode = vscode.commands.registerCommand('change-viewer.openRouteCode', async (routeId: string, stepIndex: number) => {
+		const route = activeSession?.input.reviewRoutes.find((item) => item.id === routeId);
+		const step = route?.steps[stepIndex];
+		if (step?.kind !== 'code' || activeSession === undefined) {return;}
+		selectionStore.set({ kind: 'routeStep', routeId, stepIndex });
+		try { await sourceNavigator.open(activeSession.workspaceRoot, step.location); }
+		catch (error) { void vscode.window.showWarningMessage(error instanceof Error ? error.message : 'コードを開けませんでした。'); }
+	});
+	const openContext = vscode.commands.registerCommand('change-viewer.openContext', async (changeUnitId: string, contextIndex: number) => {
+		if (activeSession === undefined || !Number.isInteger(contextIndex) || contextIndex < 0) {return;}
+		try { await sourceNavigator.openContext?.(activeSession, changeUnitId, contextIndex); }
+		catch (error) { void vscode.window.showWarningMessage(error instanceof Error ? error.message : 'Contextを開けませんでした。'); }
+	});
+	const selectRouteStep = vscode.commands.registerCommand('change-viewer.selectRouteStep', (routeId: string, stepIndex: number) => {
+		if (activeSession?.input.reviewRoutes.some((route) => route.id === routeId && route.steps[stepIndex]?.kind === 'explanation')) {
+			selectionStore.set({ kind: 'routeStep', routeId, stepIndex });
+		}
+	});
+	const routesTree = vscode.window.registerTreeDataProvider('changeViewer.routes', routeProvider);
 	const tree = vscode.window.registerTreeDataProvider('changeViewer.files', treeProvider);
-	context.subscriptions.push(command, selectChangeUnit, selectUnassigned, tree, treeProvider, routeView, diffView, selectionStore, sourceNavigator, new vscode.Disposable(selectionSubscription), new ChangeViewerConfigWatcher());
+	context.subscriptions.push(command, selectChangeUnit, selectUnassigned, openRouteCode, openContext, selectRouteStep, routesTree, routeProvider, tree, treeProvider, diffView, selectionStore, sourceNavigator, new vscode.Disposable(selectionSubscription), new ChangeViewerConfigWatcher());
 }
 
 export function deactivate(): void {}
