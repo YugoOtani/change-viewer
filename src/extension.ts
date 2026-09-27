@@ -12,6 +12,23 @@ import {
 import type {
 	WorkspaceFolderDescriptor,
 } from './application/workspace-resolution';
+import {
+	loadReviewSession,
+} from './application/review-pipeline';
+import {
+	InMemoryReviewSelectionStore,
+} from './application/review-selection';
+import {
+	GitCliRepository,
+} from './infrastructure/git-repository';
+import {
+	GitSourceNavigator,
+} from './infrastructure/source-navigator';
+import {
+	DiffWebview,
+	ReviewRouteWebview,
+	ReviewTreeDataProvider,
+} from './infrastructure/review-views';
 
 const openReviewCommand = 'change-viewer.openReview';
 const configFileName = 'change-viewer.json';
@@ -134,9 +151,29 @@ let sessionSequence = 0;
 
 /** 拡張を有効化し、手動起動と設定ファイル検出を登録する。 */
 export function activate(context: vscode.ExtensionContext): void {
+	// 入力、Git、選択状態、各画面を組み立ててレビュー操作へ接続する
 	const inputSource = new VsCodeReviewInputSource();
-	const command = vscode.commands.registerCommand(openReviewCommand, async () => {
-		// アクティブな文書とワークスペースを、レビュー開始処理へ渡せる形に整える
+	const repository = new GitCliRepository();
+	const selectionStore = new InMemoryReviewSelectionStore();
+	const sourceNavigator = new GitSourceNavigator(repository);
+	const routeView = new ReviewRouteWebview(selectionStore, sourceNavigator);
+	const diffView = new DiffWebview(selectionStore, sourceNavigator);
+	const treeProvider = new ReviewTreeDataProvider(selectionStore);
+	let activeSession: import('./domain').ReconciledSession | undefined;
+	const selectionSubscription = selectionStore.subscribe((selection) => {
+		if (selection?.kind !== 'changeUnit' || activeSession === undefined) {return;}
+		void sourceNavigator.openChangeUnit(activeSession, selection.changeUnitId).catch((error: unknown) => {
+			void vscode.window.showWarningMessage(error instanceof Error ? error.message : 'ソースを開けませんでした。');
+		});
+	});
+	const startReview = async (): Promise<void> => {
+		// 再実行時に前のレビュー画面と選択対象を残さない
+		activeSession = undefined;
+		selectionStore.set(null);
+		routeView.clear();
+		diffView.clear();
+		treeProvider.clear();
+		// 入力元とワークスペースを解決した後、GitとCUを順に読み込む
 		const activeEditor = vscode.window.activeTextEditor;
 		const activeDocument = activeEditor === undefined
 			? undefined
@@ -144,36 +181,56 @@ export function activate(context: vscode.ExtensionContext): void {
 				uri: activeEditor.document.uri.toString(),
 				languageId: activeEditor.document.languageId,
 			};
-		const workspaceFolders = describeWorkspaceFolders();
 		const picker = {
-			// 複数ワークスペースの場合だけ、対象をユーザーに選んでもらう
 			pick: async (folders: readonly WorkspaceFolderDescriptor[]) => {
 				const selected = await vscode.window.showWorkspaceFolderPick({
 					placeHolder: 'レビュー対象のワークスペースを選択してください',
 				});
-				if (selected === undefined) {
-					return undefined;
-				}
-				return folders.find((folder) => folder.id === selected.uri.toString());
+				return selected === undefined ? undefined : folders.find((folder) => folder.id === selected.uri.toString());
 			},
 		};
-
-		// 入力の検証とセッション作成を行い、失敗時は問題をまとめて表示する
-		const result = await startReviewFromActiveDocument(
+		const startResult = await startReviewFromActiveDocument(
 			activeDocument,
-			workspaceFolders,
+			describeWorkspaceFolders(),
 			picker,
 			inputSource,
 			`review-${++sessionSequence}`,
 		);
-		if (result.session === null) {
-			showStartIssues(result.issues);
+		if (startResult.session === null) {
+			showStartIssues(startResult.issues);
 			return;
 		}
-		void vscode.window.showInformationMessage('レビュー入力を読み込みました。');
+		const loaded = await loadReviewSession(startResult.session, repository);
+		if (loaded.session === null) {
+			showStartIssues(loaded.issues);
+			return;
+		}
+		// 読み込み済みセッションを各画面へ渡し、継続可能な問題を通知する
+		activeSession = loaded.session;
+		selectionStore.set(null);
+		sourceNavigator.setSession(loaded.session);
+		treeProvider.setSession(loaded.session);
+		await routeView.show(loaded.session);
+		await diffView.show(loaded.session);
+		const warnings = loaded.issues.filter((issue) => issue.severity === 'warning');
+		if (warnings.length > 0) {
+			void vscode.window.showWarningMessage(warnings.map((issue) => issue.message).join('\n'));
+		}
+	};
+	// コマンド、ツリー、設定ファイル監視を拡張のライフサイクルへ登録する
+	const command = vscode.commands.registerCommand(openReviewCommand, async () => {
+		await startReview();
 	});
-
-	context.subscriptions.push(command, new ChangeViewerConfigWatcher());
+	const selectChangeUnit = vscode.commands.registerCommand('change-viewer.selectChangeUnit', async (changeUnitId: string) => {
+		if (activeSession?.input.changeUnits.some((unit) => unit.id === changeUnitId) !== true) {return;}
+		selectionStore.set({ kind: 'changeUnit', changeUnitId });
+	});
+	const selectUnassigned = vscode.commands.registerCommand('change-viewer.selectUnassignedDiff', (diffId: string) => {
+		if (activeSession?.reconciliation.unassignedDiffs.some((diff) => diff.id === diffId) !== true) {return;}
+		selectionStore.set({ kind: 'unassignedDiff', diffId });
+	});
+	const tree = vscode.window.registerTreeDataProvider('changeViewer.files', treeProvider);
+	context.subscriptions.push(command, selectChangeUnit, selectUnassigned, tree, treeProvider, routeView, diffView, selectionStore, sourceNavigator, new vscode.Disposable(selectionSubscription), new ChangeViewerConfigWatcher());
 }
 
 export function deactivate(): void {}

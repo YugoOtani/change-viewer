@@ -18,8 +18,24 @@
       {
         "command": "change-viewer.openReview",
         "title": "Open Change Review"
+      },
+      {
+        "command": "change-viewer.selectChangeUnit",
+        "title": "Select Change Unit"
+      },
+      {
+        "command": "change-viewer.selectUnassignedDiff",
+        "title": "Select Unassigned Diff"
       }
-    ]
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "changeViewer.files",
+          "name": "Change Viewer"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",

@@ -46,6 +46,8 @@ export {
 	selectReviewItem,
 } from './review-session';
 
+export { reconcileChangeUnits } from './reconciliation';
+
 export type {
 	CuReconciliation,
 	GitLoadedSession,

@@ -76,6 +76,7 @@ interface ReviewSessionBase {
 	/** Git、パス検証、ソース移動で共有するワークスペースのルート。 */
 	workspaceRoot: string;
 	selection: ReviewSelection | null;
+	issues: readonly ReviewIssue[];
 }
 
 /** 入力検証が完了し、Git 内容をまだ付加していない状態。 */
@@ -119,6 +120,7 @@ export function createReviewSession(
 		git: null,
 		reconciliation: null,
 		selection: null,
+		issues: [],
 	};
 }
 
@@ -139,11 +141,13 @@ export function attachGitComparison(
 export function attachReconciliation(
 	session: GitLoadedSession,
 	reconciliation: CuReconciliation,
+	issues: readonly ReviewIssue[] = [],
 ): ReconciledSession {
 	return {
 		...session,
 		phase: 'reconciled',
 		reconciliation,
+		issues,
 	};
 }
 
