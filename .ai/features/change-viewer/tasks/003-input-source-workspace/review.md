@@ -2,7 +2,7 @@
 
 ## 変更概要
 
-003 は、エディタで開いている JSON を入力として手動レビューを開始し、対象ワークスペースを確定して入力検証済みセッションへ渡す処理を追加している。あわせて、各ワークスペースの `.vscode/change-viewer.json` を検出・更新したときに通知する監視を拡張のライフサイクルへ接続している。レビュー Webview を開く処理や Git の実読み取りは、このコミットではまだ行わない。
+003 は、エディタで開いている JSON を入力として手動レビューを開始し、対象ワークスペースを確定して入力検証済みセッションへ渡す処理を追加している。あわせて、拡張の起動時に各ワークスペースの `.vscode/change-viewer.json` の監視を始め、拡張の終了時に解除する。レビュー Webview を開く処理や Git の実読み取りは、このコミットではまだ行わない。
 
 ## 処理の流れ
 
@@ -41,7 +41,7 @@
 
 `VS Code コマンド → 入力元・ワークスペース解決 → 入力検証済みセッション → 後続の Git 読み取り・表示`
 
-`startReviewFromActiveDocument` は入力元と対象ワークスペースをまとめる immediate semantic parent であり、`ReviewInputSource` による読み込みと `parseReviewInput` による検証を `startReviewSession` へ接続する。
+`startReviewFromActiveDocument` は入力元と対象ワークスペースをまとめる immediate semantic parent であり、入力元とワークスペースを確認してから `startReviewSession` を呼ぶ。`startReviewSession` は `ReviewInputSource` で入力を読み、`parseReviewInput` で検証する。
 
 **関連**
 

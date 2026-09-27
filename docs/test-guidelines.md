@@ -66,9 +66,9 @@
 
 以下に適する。
 
-- Repository とDBの連携
+- Repository を通じた DB の読み書き
 - serialization / deserialization
-- Tauri command とapplication layerの接続
+- Tauri command から application layer の処理を呼び出す流れ
 - external API adapter
 - persistence
 - component間のcontract

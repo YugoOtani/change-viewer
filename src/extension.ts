@@ -41,7 +41,7 @@ class VsCodeReviewInputSource implements ReviewInputSource {
 	}
 }
 
-/** 拡張のライフサイクルに設定ファイル監視を結び付ける。 */
+/** 拡張の起動時に設定ファイルの監視を始め、終了時に解除する。 */
 class ChangeViewerConfigWatcher implements vscode.Disposable {
 	private readonly watchers = new Map<string, vscode.Disposable>();
 	private readonly workspaceFoldersSubscription: vscode.Disposable;
@@ -81,7 +81,7 @@ class ChangeViewerConfigWatcher implements vscode.Disposable {
 		const watcher = vscode.workspace.createFileSystemWatcher(
 			new vscode.RelativePattern(folder, `.vscode/${configFileName}`),
 		);
-		// VS Codeのイベントをアプリケーション側の通知境界へ接続する
+		// 設定ファイルの作成・更新を受けて通知する
 		const notificationSubscription = subscribeToConfigNotifications(
 			{
 				onDidCreate: (listener) => watcher.onDidCreate((uri) => listener(uri.toString())),
@@ -151,7 +151,7 @@ let sessionSequence = 0;
 
 /** 拡張を有効化し、手動起動と設定ファイル検出を登録する。 */
 export function activate(context: vscode.ExtensionContext): void {
-	// 入力、Git、選択状態、各画面を組み立ててレビュー操作へ接続する
+	// レビュー入力、Git、選択状態、表示画面を用意する
 	const inputSource = new VsCodeReviewInputSource();
 	const repository = new GitCliRepository();
 	const selectionStore = new InMemoryReviewSelectionStore();
@@ -160,6 +160,7 @@ export function activate(context: vscode.ExtensionContext): void {
 	const diffView = new DiffWebview(selectionStore, sourceNavigator);
 	const treeProvider = new ReviewTreeDataProvider(selectionStore);
 	let activeSession: import('./domain').ReconciledSession | undefined;
+	// CU が選択されたら、対応するコミットのソースを開く
 	const selectionSubscription = selectionStore.subscribe((selection) => {
 		if (selection?.kind !== 'changeUnit' || activeSession === undefined) {return;}
 		void sourceNavigator.openChangeUnit(activeSession, selection.changeUnitId).catch((error: unknown) => {

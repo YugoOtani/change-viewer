@@ -61,7 +61,7 @@ async function validateSourceReferences(
 		const blob = await repository.readBlob(session.workspaceRoot, commit, location.path);
 		available.set(locationKey(location), blob !== null && location.endLine <= countLines(blob.content));
 	}));
-	// 開けない参照先を、元の Route と CU の位置へ結び付けて警告にする
+	// 開けない参照先を、元の Route と CU の位置を示す警告にする
 	for (const route of session.input.reviewRoutes) {
 		for (const [stepIndex, step] of route.steps.entries()) {
 			if (step.kind !== 'code') {continue;}

@@ -43,11 +43,10 @@
 ## 未解決リスク
 
 - Git ポートの具体的な直接差分・名前変更検出・blob 読み取りは 004 で実装するため、現時点では実リポジトリとの統合は未検証である。
-- VS Code の Webview、Tree View、通常エディタへの接続は後続タスクで実装するため、Extension Development Host の表示確認は未実施である。
+- VS Code の Webview、Tree View、通常エディタへの表示は後続タスクで実装するため、Extension Development Host の表示確認は未実施である。
 
 ## 未検証事項
 
 - VS Code 本体を必要とする既存の Extension Test Suite。
 - 40 桁と 64 桁の Git object format の実動作。
 - JSON スキーマ検証、CU 照合、Git 差分本文の生成。
-

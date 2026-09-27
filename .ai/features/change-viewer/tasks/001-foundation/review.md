@@ -2,7 +2,7 @@
 
 ## 変更概要
 
-foundation タスクとして、Change Viewer の入力・Git 差分・レビュー状態を表す純粋なドメインモデルと、入力読み取り・Git・表示・ソース移動を差し替えるためのポートを追加している。実際の JSON 検証、Git 読み取り、VS Code UI への接続はまだ行われていない。
+foundation タスクとして、Change Viewer の入力・Git 差分・レビュー状態を表す純粋なドメインモデルと、入力読み取り・Git・表示・ソース移動を差し替えるためのポートを追加している。実際の JSON 検証、Git 読み取り、VS Code への表示処理はまだ行われていない。
 
 ## 処理の流れ
 
@@ -15,7 +15,7 @@ foundation タスクとして、Change Viewer の入力・Git 差分・レビュ
 - `attachReconciliation` が CU と実差分の照合結果を追加する。
 - `selectReviewItem` が CU、未割当差分、Route step の選択を不変更新する。
 
-外部実装は、`ReviewInputSource`、`GitRepository`、`ReviewRouteView`、`ReviewDiffView`、`SourceNavigator`、`ReviewSelectionStore` のポートを経由して接続する想定になっている。
+外部実装は、`ReviewInputSource`、`GitRepository`、`ReviewRouteView`、`ReviewDiffView`、`SourceNavigator`、`ReviewSelectionStore` の各ポートを通じて呼び出す想定になっている。
 
 ### 1. 入力と Review Route のドメインモデル
 

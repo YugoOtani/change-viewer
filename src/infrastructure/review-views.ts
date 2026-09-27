@@ -160,7 +160,7 @@ export class DiffWebview implements ReviewDiffView, vscode.Disposable {
 	}
 }
 
-/** Explorer のファイル、CU、未割当差分を VS Code Tree View へ接続する。 */
+/** Explorer にファイル、CU、未割当差分をツリー表示する。 */
 export class ReviewTreeDataProvider implements vscode.TreeDataProvider<TreeNode>, vscode.Disposable {
 	private session: ReconciledSession | undefined;
 	private readonly changeEmitter = new vscode.EventEmitter<TreeNode | undefined>();

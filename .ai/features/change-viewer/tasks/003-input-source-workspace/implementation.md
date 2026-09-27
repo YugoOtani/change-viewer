@@ -9,14 +9,14 @@
 
 ## 変更した内容
 
-- `src/application/workspace-resolution.ts` に、アクティブ文書の確認、ワークスペース数に応じた対象決定、レビュー開始処理への接続を追加した。
+- `src/application/workspace-resolution.ts` に、アクティブ文書の確認、ワークスペース数に応じた対象決定、レビュー開始処理の呼び出しを追加した。
 - `src/application/config-detection.ts` に、設定ファイルの作成・更新通知と購読解除の境界を追加した。
 - `src/domain/review-session.ts` のレビューセッションに `workspaceRoot` を追加し、入力検証後も対象ルートを保持するようにした。
 - `src/application/review-start.ts` のレビュー開始処理がワークスペースルートを受け取り、セッションへ渡すようにした。
 - `src/application/ports.ts` の Git 読み取りとソース移動のポートにワークスペースルートを追加した。
 - `src/extension.ts` に `change-viewer.openReview` コマンド、アクティブ文書の入力読み取り、複数ワークスペース選択、設定ファイル監視を追加した。
-- 設定ファイル監視をワークスペースの追加・削除と拡張の `context.subscriptions` に結び付けた。
-- `package.json` のコマンドを `change-viewer.openReview` に変更し、拡張を起動時から設定ファイル監視へ接続した。
+- ワークスペースの追加・削除に合わせて設定ファイルの監視対象を更新し、`context.subscriptions` から監視を解除できるようにした。
+- `package.json` のコマンドを `change-viewer.openReview` に変更し、拡張の起動時に設定ファイルの監視を始めるようにした。
 
 ## 変更理由
 
@@ -26,7 +26,7 @@
 
 ## 主な変更箇所
 
-- `startReviewFromActiveDocument`: アクティブ文書、ワークスペース、入力読み取り、入力検証をこの順に接続する。
+- `startReviewFromActiveDocument`: アクティブ文書とワークスペースを確認し、入力を読んで検証する。
 - `resolveWorkspace`: ワークスペースなし、単一ワークスペース、複数ワークスペース、選択キャンセルをエラー結果として区別する。
 - `ChangeViewerConfigWatcher`: 各ワークスペースの `.vscode/change-viewer.json` の作成・更新を監視し、ワークスペース変更時に監視対象を更新する。
 

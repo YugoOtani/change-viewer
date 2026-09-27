@@ -2,9 +2,9 @@
 
 ## 変更内容
 
-- 手動コマンドを、入力元・ワークスペース解決、入力検証、commit解決、Git比較、CU照合、表示生成の順へ接続した。
+- 手動コマンドの実行時に、入力元・ワークスペース解決、入力検証、commit解決、Git比較、CU照合、表示生成を順に行うようにした。
 - 入力・commit解決のエラーでは表示を開かず、Git内容の不一致やソース参照不備は警告として継続する。
-- Route Webview、差分Webview、Explorer Tree、ソースナビゲーションを共通選択ストアで接続した。
+- Route Webview、差分Webview、Explorer Tree、ソースナビゲーションで選択状態を共有するようにした。
 - 再実行時に前回のセッション、Webview、Tree内容、選択状態をクリアする。
 - コマンド、Tree provider、Webview、選択購読、設定監視をExtensionContextへ登録した。
 

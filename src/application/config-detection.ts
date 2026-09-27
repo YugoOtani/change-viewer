@@ -14,12 +14,12 @@ export interface ConfigNotificationSink {
 	notify(uri: string): void;
 }
 
-/** 作成・更新を通知へ接続し、解除処理を返す。 */
+/** 設定ファイルの作成・更新時に通知し、購読の解除処理を返す。 */
 export function subscribeToConfigNotifications(
 	source: ConfigFileEventSource,
 	sink: ConfigNotificationSink,
 ): ConfigEventSubscription {
-	// 設定ファイルの作成・更新を同じ通知先へ接続する
+	// 作成・更新の両イベントで同じ通知を送る
 	const subscriptions = [
 		source.onDidCreate((uri) => sink.notify(uri)),
 		source.onDidChange((uri) => sink.notify(uri)),
