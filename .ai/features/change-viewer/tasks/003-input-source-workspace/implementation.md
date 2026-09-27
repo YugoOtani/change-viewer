@@ -10,7 +10,7 @@
 ## 変更した内容
 
 - `src/application/workspace-resolution.ts` に、アクティブ文書の確認、ワークスペース数に応じた対象決定、レビュー開始処理の呼び出しを追加した。
-- `src/application/config-detection.ts` に、設定ファイルの作成・更新通知と購読解除の境界を追加した。
+- `src/application/config-detection.ts` に、設定ファイルの作成・更新通知と購読解除を抽象化する interface を追加した。
 - `src/domain/review-session.ts` のレビューセッションに `workspaceRoot` を追加し、入力検証後も対象ルートを保持するようにした。
 - `src/application/review-start.ts` のレビュー開始処理がワークスペースルートを受け取り、セッションへ渡すようにした。
 - `src/application/ports.ts` の Git 読み取りとソース移動のポートにワークスペースルートを追加した。

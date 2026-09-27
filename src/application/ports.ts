@@ -8,35 +8,35 @@ import type {
 	SourceLocation,
 } from '../domain';
 
-/** 外部で生成されたレビュー入力 JSON の読み取り境界。 */
+/** 外部で生成されたレビュー入力 JSON の読み取りを抽象化する。 */
 export interface ReviewInputSource {
 	read(uri: string): Promise<string>;
 }
 
-/** Git のコミット解決、比較、blob 読み取りを担う境界。 */
+/** Git のコミット解決、比較、blob 読み取りを抽象化する。 */
 export interface GitRepository {
 	resolveCommit(workspaceRoot: string, commitId: string): Promise<GitCommit>;
 	compareCommits(workspaceRoot: string, base: GitCommit, target: GitCommit): Promise<GitComparison>;
 	readBlob(workspaceRoot: string, commit: GitCommit, path: RepositoryPath): Promise<GitBlob | null>;
 }
 
-/** Review Route を表示する境界。入力検証後の全セッションを扱う。 */
+/** Git の実変更行と CU の対応付けが済んだレビュー状態を受け取り、Review Route を表示する。 */
 export interface ReviewRouteView {
 	show(session: ReconciledSession): Promise<void>;
 }
 
-/** Git 差分と CU の照合結果が揃ったレビューを表示する境界。 */
+/** Git の実変更行と CU の対応付けが済んだレビュー状態を受け取り、ファイル別・CU 別の差分を表示する。 */
 export interface ReviewDiffView {
 	show(session: ReconciledSession): Promise<void>;
 }
 
-/** 指定コミットのソース位置を通常のエディタへ移動する境界。 */
+/** 指定コミットのソース位置を通常のエディタで開く処理を抽象化する。 */
 export interface SourceNavigator {
 	open(workspaceRoot: string, location: SourceLocation): Promise<void>;
 	openContext?(session: ReconciledSession, changeUnitId: string, contextIndex: number): Promise<void>;
 }
 
-/** View 間でレビュー対象の選択状態を共有する境界。 */
+/** View 間で共有する選択状態の取得・更新・購読を抽象化する。 */
 export interface ReviewSelectionStore {
 	get(): ReviewSelection | null;
 	set(selection: ReviewSelection | null): void;

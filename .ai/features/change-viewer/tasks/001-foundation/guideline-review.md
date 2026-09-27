@@ -16,7 +16,7 @@ foundation タスクの変更を、プロジェクト規約、既存の構成、
 - 変更範囲は `001-foundation` のドメイン型、application port、契約テスト、および同タスクの開発ドキュメントに収まっている。後続タスクの具体実装や `docs/spec.md` の変更はない。
 - `src/domain` と `src/application` に VS Code API、Git プロセス、filesystem の import はない。
 - 状態遷移は判別可能な union と不変更新で構成され、不要な warning 抑制、debug code、無関係なリファクタリングは確認されなかった。
-- 既存の `ReviewInputSource`、`GitRepository`、各 View、`SourceNavigator`、`ReviewSelectionStore` という外部境界の構成は維持した。
+- 外部処理を抽象化する既存の `ReviewInputSource`、`GitRepository`、各 View、`SourceNavigator`、`ReviewSelectionStore` の構成は維持した。
 - CU 選択、Route 表示、ソース移動などの仕様判断を伴う契約は変更していない。
 
 ## 検証

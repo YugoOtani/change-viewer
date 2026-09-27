@@ -22,7 +22,7 @@
 ## 必要な検証
 
 - `src/input.schema.json` の正常例と、各エラー条件を最小限の fixture で単体テストする。
-- 40 桁・64 桁の小文字 ID、短い ID、大文字を境界値として確認する。
+- 40 桁・64 桁の小文字 ID が有効で、短い ID と大文字を含む ID が無効になることを確認する。
 - 同一 CU の複数 Route 参照、同一 Route 内の繰り返し、Route 未参照 CU が許可されることを確認する。
 - 入力エラー時にレビュー開始処理へ進まないことを結合テストで確認する。
 - `npm run check-types`、`npm run lint`、`npm test` を実行する。
@@ -41,4 +41,3 @@ MEDIUM
 - Git blob と実差分に対する CU 範囲の照合。
 - 入力エラーの最終的な通知・Webview 表示のデザイン。
 - `.vscode/change-viewer.json` の構造決定。
-

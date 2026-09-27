@@ -73,7 +73,7 @@
 - persistence
 - component間のcontract
 
-mockだけでは確認できない境界を検証する。
+mockだけでは確認できない、複数の処理を組み合わせた結果を検証する。
 
 ### E2Eテスト
 
@@ -142,11 +142,11 @@ mockの呼び出し回数をテスト名や主要なassertionにしない。
 
 ## モック・スタブ・フェイク
 
-- mockは必要な境界に限定する。
+- mockは外部依存を差し替える必要がある箇所に限定する。
 - domain logicのテストで不要なmockを導入しない。
 - 実装内部の呼び出し順序や回数への過度な依存を避ける。
 - behaviorを確認できる場合は、interactionよりstate/resultを優先する。
-- persistenceやexternal serviceとの境界では、FakeやTest Doubleを適切に利用する。
+- persistenceやexternal serviceに依存する箇所では、FakeやTest Doubleを適切に利用する。
 - mockによって実際のintegration failureを隠さない。
 
 重要なadapterやRepositoryについては、

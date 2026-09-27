@@ -22,7 +22,7 @@ export interface ActiveInputDocument {
 	languageId: string;
 }
 
-/** 複数ワークスペースから対象を選ぶ境界。 */
+/** 複数ワークスペースから対象を選ぶ操作を抽象化する。 */
 export interface WorkspaceFolderPicker {
 	pick(folders: readonly WorkspaceFolderDescriptor[]): Promise<WorkspaceFolderDescriptor | undefined>;
 }

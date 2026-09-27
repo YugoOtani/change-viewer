@@ -21,5 +21,5 @@
 
 ## 未解決リスク・未検証事項
 
-- 1,000行・1MiBの境界fixtureは未追加である。
+- 1,000行・1MiBの切り替え条件を確認するfixtureは未追加である。
 - Webviewの色、折りたたみ、展開操作はExtension Development Hostで未確認である。
